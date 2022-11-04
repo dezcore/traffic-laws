@@ -3,6 +3,12 @@ version: '3.4'
 services:
   trafficlawsserver:
     image: trafficlawsserver
+    ports:
+      - "3000:3000"
+    working_dir: /app
     build:
       context: .
       dockerfile: ./Dockerfile
+    volumes:
+      - .:/app
+      - '/app/node_modules'
