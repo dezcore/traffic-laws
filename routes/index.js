@@ -33,6 +33,10 @@ router.get('/state', (req, res) => {
   trafficlawService.getState(res)
 })
 
+router.post('/code', async function(req, res) {
+  trafficlawService.getTokens(req, res)
+})
+
 router.post('/token', async function(req, res, next) {
   try {
     res.json(await trafficlawService.initGToken(req.body))

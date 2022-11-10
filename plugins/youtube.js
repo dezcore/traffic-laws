@@ -14,6 +14,16 @@ let oauth2Client = new google.auth.OAuth2(
     //REDIRECT_URL[0]
 )
 
+function getTokens(req, callBack) {
+    const code = req.body.code        
+    if(code) {
+        oauth2Client.getToken(code, (err, tokens) => {
+            if(callBack)
+                callBack(err, tokens)
+        })
+    }
+}
+
 function validateCode(req, callBack) {
     let validate = true
     const code = req.body.code
@@ -73,5 +83,6 @@ function getState(res) {
 module.exports = {
     getFiles,
     getState,
+    getTokens,
     validateCode
 }

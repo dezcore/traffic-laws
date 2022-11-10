@@ -11,6 +11,18 @@ function getFiles(req, res) {
     google.getFiles(res)
 }
 
+function getTokens(req, res) {
+  if(req && res) {
+    google.getTokens(req, (err, tokens) => {
+      if(err) {
+        res.status(403).render()
+      } else {
+        res.json({"tokens" : tokens})
+      }
+    })
+  }
+}
+
 function getState(res) {
   if(res)
    google.getState(res)
@@ -34,5 +46,6 @@ module.exports = {
   update,
   remove,
   getState,
+  getTokens,
   validateCode
 }
