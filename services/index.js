@@ -2,13 +2,16 @@ const helper = require('../helper')
 const config = require('../config')
 const google = require('./../plugins/youtube')
 
-function validateCode(req, callBack) {
-  google.validateCode(req, callBack)
+function setTokens(tokens, callBack) {
+  google.setTokens(tokens, callBack)
 }
 
 function getFiles(req, res) {
-  if(req && res)
-    google.getFiles(res)
+  if(req && res) {
+    google.getFiles((filesNames) => {
+      res.json({"filesNames" : filesNames})
+    })
+  }
 }
 
 function getTokens(req, res) {
@@ -47,5 +50,5 @@ module.exports = {
   remove,
   getState,
   getTokens,
-  validateCode
+  setTokens
 }

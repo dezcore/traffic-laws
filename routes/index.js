@@ -3,22 +3,12 @@ const router = express.Router()
 const trafficlawService = require('../services/index')
 
 function verifyToken(req, res, next) {
-  let bearer, bearerToken
-  const bearerHeader = req.headers['authorization']
+  const tokens = JSON.parse(req.headers.tokens)
 
-  if(typeof bearerHeader !== 'undefined') {
-    bearer = bearerHeader.split(' ')
-    bearerToken = bearer[1]
-    req.body.code = bearerToken
-    
-    trafficlawService.validateCode(req, (validate, message) => {
-      if(validate)
+  if(tokens) {    
+    trafficlawService.setTokens(tokens, () => {
         next()
-      else
-        res.json({"code" : 403, "message" : message})
-
     })
-
   } else {
     res.sendStatus(403)
   }
@@ -31,6 +21,12 @@ router.get('/', verifyToken, (req, res) => {
 
 router.get('/state', (req, res) => {
   trafficlawService.getState(res)
+})
+
+router.post('/', async function(req, res) {
+  console.log("post : ", req.body)
+  res.json({'message': 'post data'})
+  //trafficlawService.getTokens(req, res)
 })
 
 router.post('/code', async function(req, res) {

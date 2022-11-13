@@ -4,6 +4,8 @@ const app = express();
 const port = process.env.PORT || 3000;
 const trafficlawsRouter = require('./routes/index');
 
+app.use(require('cors')())
+
 app.use(bodyParser.json());
 
 app.use(

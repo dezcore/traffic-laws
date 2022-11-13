@@ -5,7 +5,7 @@ const OAuth2Data = require('./google_key.json')
 let authed = false
 const CLIENT_ID = OAuth2Data.client.id
 const CLIENT_SECRET = OAuth2Data.client.secret
-const REDIRECT_URL = OAuth2Data.client.redirect
+//const REDIRECT_URL = OAuth2Data.client.redirect
 
 let oauth2Client = new google.auth.OAuth2(
     CLIENT_ID,
@@ -24,25 +24,10 @@ function getTokens(req, callBack) {
     }
 }
 
-function validateCode(req, callBack) {
-    let validate = true
-    const code = req.body.code
-    let message = "Successfully authenticated"
-
-    if(code) {
-        oauth2Client.getToken(code, (err, tokens) => {
-            if(err) {
-                validate = false
-                message = 'Error authenticating'
-                //console.log(err)
-            } else if(!authed) { 
-                authed = true
-                oauth2Client.setCredentials(tokens)
-            }
-
-            if(callBack)
-                callBack(validate, message)
-        })
+function setTokens(tokens, callBack) {
+    if(tokens) {
+        oauth2Client.setCredentials(tokens)
+        callBack()
     }
 }
 
@@ -62,20 +47,19 @@ function filesHandler(err1, res1, callBack) {
     }
 }
 
-function getFiles(res) {
+function getFiles(callBack) {
     drive.files.list({
         auth: oauth2Client,
         pageSize: 10,
         fields: 'nextPageToken, files(id, name)',
     },(err1, res1) => {
         filesHandler(err1, res1, (filesNames) => {
-            res.json({"files" : filesNames})
+            callBack(filesNames)
         })
     })
 }
 
 function getState(res) {
-    console.log(oauth2Client)
     if(res)
         res.json({"state" : authed})
 }
@@ -84,5 +68,5 @@ module.exports = {
     getFiles,
     getState,
     getTokens,
-    validateCode
+    setTokens
 }
