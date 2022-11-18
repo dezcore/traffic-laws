@@ -1,6 +1,8 @@
 const { google } = require('googleapis')
 const drive = google.drive('v3')
 const OAuth2Data = require('./google_key.json')
+const fileService = require('./../services/file')
+const driveProps = require('./../properties/drive')
 
 let authed = false
 const CLIENT_ID = OAuth2Data.client.id
@@ -31,32 +33,122 @@ function setTokens(tokens, callBack) {
     }
 }
 
-function filesHandler(err1, res1, callBack) {
-    if (err1) return console.log('The API returned an error: ' + err1)
-    const files = res1.data.files
-    let filesNames = []
+function search(filter, callBack) {
+    drive.files.list({
+        auth: oauth2Client,
+        q: filter,
+        fields: 'nextPageToken, files(id, name)',
+        spaces: 'drive',
+        }, (err1, res) => {
+            callBack(err1, res)
+    })
+}
 
-    if(files.length) {
-        files.map((file) => {
-            console.log(`${file.name} (${file.id})`)
-            filesNames.push(`${file.name} (${file.id})`)
+function createFile(fileName, media, folderId, callBack) {
+    if(fileName) {
+        fileService.getFileContent("../files", fileName, (stream) => {
+
+            if(stream) {
+                drive.files.create({
+                    auth: oauth2Client,
+                    resource:  {
+                        name: fileName,
+                        parents : [folderId] 
+                    },
+                    media : {
+                        mimeType : driveProps.MEDIA_MIMETYPES[media],
+                        body : stream
+                    },
+                    fields: 'id',
+                    }, callBack)
+            }
         })
-        callBack(filesNames)
-    } else {
-        console.log('No files found.')
     }
 }
 
-function getFiles(callBack) {
-    drive.files.list({
-        auth: oauth2Client,
-        pageSize: 10,
-        fields: 'nextPageToken, files(id, name)',
-    },(err1, res1) => {
-        filesHandler(err1, res1, (filesNames) => {
-            callBack(filesNames)
+function createFolder(folderName, callBack) {
+    const fileMetadata = {
+        name: folderName,
+        mimeType: 'application/vnd.google-apps.folder',
+    }
+    
+    if(fileMetadata) {
+        drive.files.create({
+            auth: oauth2Client,
+            resource: fileMetadata,
+            fields: 'id',
+            }, callBack)
+    }
+}
+
+function deleteFile(fileId, callBack) {
+    if(fileId) {
+        drive.files.delete({
+            auth: oauth2Client,
+            fileId : fileId,
+            }, callBack)
+    }
+}
+
+function uploadFile(fileName, media, callBack) {
+    if(fileName && media) {
+        fileService.getFileContent("../files", fileName, (stream) => {
+            if(stream) {
+                drive.files.create({
+                    auth: oauth2Client,
+                    resource:  {
+                        name: fileName,
+                        parents : [folderId],
+                        mimeType: driveProps.RESOURCES_MIMETYPES['mimeType'],
+                    },
+                    media : {
+                        mimeType: driveProps.MEDIA_MIMETYPES[ 'csv'],
+                        body: stream,
+                    },
+                    fields: 'id',
+                    }, callBack)
+            }
         })
+    }
+}
+
+function getFileParents(fileId, callBack) {
+    drive.files.get({
+        auth: oauth2Client,
+        fileId: fileId,
+        fields: 'parents',
+    }, (err1, file) => {
+        if(err1){
+            callBack(err1)
+        } else {
+            const previousParents = file.data.parents
+            .map(function(parent) {
+                return parent.id
+            })
+            .join(',')
+
+            callBack(err1, previousParents)
+        }
     })
+}
+
+function moveFile(folderId, fileId, callBack) {
+    if(folderId && fileId) {
+        getFileParents(fileId, (err1, previousParents) => {
+            if(err1){
+                callBack(err1)
+            } else {
+
+                drive.files.update({
+                    auth: oauth2Client,
+                    fileId: fileId,
+                    addParents: folderId,
+                    removeParents: previousParents,
+                    fields: 'id, parents',
+                    }, callBack)   //console.log(files.status);
+            }
+        })
+    }
 }
 
 function getState(res) {
@@ -65,8 +157,13 @@ function getState(res) {
 }
 
 module.exports = {
-    getFiles,
+    search,
+    moveFile,
     getState,
     getTokens,
-    setTokens
+    setTokens,
+    uploadFile,
+    createFile,
+    deleteFile,
+    createFolder
 }

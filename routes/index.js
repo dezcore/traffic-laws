@@ -19,18 +19,32 @@ router.get('/', verifyToken, (req, res) => {
   trafficlawService.getFiles(req, res)
 })
 
+router.get('/file', verifyToken, (req, res) => {
+  trafficlawService.getFiles(req, res)
+})
+
+router.get('/responses', verifyToken, (req, res) => {
+  trafficlawService.getFiles(req, res)
+})
+
 router.get('/state', (req, res) => {
   trafficlawService.getState(res)
 })
 
-router.post('/', async function(req, res) {
-  console.log("post : ", req.body)
-  res.json({'message': 'post data'})
-  //trafficlawService.getTokens(req, res)
+router.post('/', verifyToken, (req, res)=> {
+  trafficlawService.postUserResponse(req, res)
 })
 
-router.post('/code', async function(req, res) {
+router.post('/code', (req, res) => {
   trafficlawService.getTokens(req, res)
+})
+
+router.post('/file', verifyToken, (req, res) => {
+  trafficlawService.createFile(req, res)
+})
+
+router.post('/folder', verifyToken, (req, res) => {
+  trafficlawService.createFolder(req, res)
 })
 
 router.post('/token', async function(req, res, next) {
