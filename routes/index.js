@@ -24,7 +24,7 @@ router.get('/file', verifyToken, (req, res) => {
 })
 
 router.get('/responses', verifyToken, (req, res) => {
-  trafficlawService.getFiles(req, res)
+  trafficlawService.getResponses(req, res)
 })
 
 router.get('/state', (req, res) => {
