@@ -4,7 +4,6 @@ const trafficlawService = require('../services/index')
 
 function verifyToken(req, res, next) {
   const tokens = JSON.parse(req.headers.tokens)
-
   if(tokens) {    
     trafficlawService.setTokens(tokens, () => {
         next()

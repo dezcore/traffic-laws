@@ -53,8 +53,8 @@ function getFiles(req, res) {
 }
 
 function getResponses(req, res) {
-  const name = req.body.name
-
+  const name = req.query.name
+  console.log("getResponses : ", req)
   if(name && res) {
     google.search('name = \'' + name + '\'', (err1, file) => {
       if(err1) {
