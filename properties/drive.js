@@ -1,7 +1,8 @@
 const MEDIA_MIMETYPES = {
     "jpg" : 'image/jpeg',
     "csv" : 'text/csv',
-    "json" : 'application/json'
+    "json" : 'application/json',
+    "pdf" : 'application/pdf',
 }
 
 const RESOURCES_MIMETYPES = {

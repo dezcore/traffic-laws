@@ -4,6 +4,7 @@ const trafficlawService = require('../services/index')
 
 function verifyToken(req, res, next) {
   const tokens = JSON.parse(req.headers.tokens)
+
   if(tokens) {    
     trafficlawService.setTokens(tokens, () => {
         next()
@@ -20,6 +21,10 @@ router.get('/', verifyToken, (req, res) => {
 
 router.get('/file', verifyToken, (req, res) => {
   trafficlawService.getFiles(req, res)
+})
+
+router.get('/download', verifyToken, (req, res) => {
+  trafficlawService.downloadFile(req, res)
 })
 
 router.get('/responses', verifyToken, (req, res) => {
@@ -65,14 +70,9 @@ router.put('/:id', async function(req, res, next) {
   }
 })
 
-/* DELETE test responses */
-router.delete('/:id', async function(req, res, next) {
-  try {
-    res.json(await trafficlawService.remove(req.params.id))
-  } catch (err) {
-    console.error(`Error while deleting test responses`, err.message)
-    next(err)
-  }
+/*DELETE test responses*/
+router.delete('/folder/:name',  verifyToken, (req, res) => {
+  trafficlawService.removeFolder(req, res)
 })
 
 module.exports = router

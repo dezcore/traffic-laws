@@ -1,19 +1,14 @@
 const { google } = require('googleapis')
 const drive = google.drive('v3')
-const OAuth2Data = require('./google_key.json')
 const fileService = require('./../services/file')
 const driveProps = require('./../properties/drive')
 
 let authed = false
-const CLIENT_ID = OAuth2Data.client.id
-const CLIENT_SECRET = OAuth2Data.client.secret
-//const REDIRECT_URL = OAuth2Data.client.redirect
 
 let oauth2Client = new google.auth.OAuth2(
-    CLIENT_ID,
-    CLIENT_SECRET,
+    process.env.DRIVE_CLIENT_ID,
+    process.env.DRIVE_CLIENT_SECRET,
     'postmessage'
-    //REDIRECT_URL[0]
 )
 
 function getTokens(req, callBack) {
@@ -44,23 +39,93 @@ function search(filter, callBack) {
     })
 }
 
+function exportFile(fileId, callBack) {
+    if(fileId) {
+        drive.files.export({
+            auth: oauth2Client,
+            fileId: fileId,
+            mimeType: 'text/plain',
+            }, callBack)
+    }
+}
+
+function downloadFile(fileId, callBack) {
+    if(fileId) {
+        drive.files.get({
+            auth: oauth2Client,
+            fileId: fileId,
+            alt: 'media',
+            }, callBack)
+    }
+}
+
+function shareFile(fileId, callBack) {
+    if(fileId) {
+        drive.permissions.create({
+            auth: oauth2Client,
+            resource: {
+                type: 'anyone',
+                role: 'reader',
+                //domain: 'global'
+            },
+            fileId: fileId,
+            fields: 'id',
+        }, callBack)
+    }
+}
+
 function createFile(fileName, media, folderId, callBack) {
     if(fileName) {
-        fileService.getFileContent("../files", fileName, (stream) => {
-
-            if(stream) {
+        fileService.getFileContent("../files", fileName, (error, stream) => {
+            if(error) {
+                callBack(err, null)
+            } else if(stream) {
                 drive.files.create({
                     auth: oauth2Client,
                     resource:  {
                         name: fileName,
-                        parents : [folderId] 
+                        parents : [folderId],
                     },
                     media : {
                         mimeType : driveProps.MEDIA_MIMETYPES[media],
                         body : stream
                     },
                     fields: 'id',
-                    }, callBack)
+                    }, (err, res)=>{
+                        if(err) {
+                            callBack(err, res)
+                        } else {
+                            shareFile(res.data.id, (err2, res2) => {
+                                if(err2) {
+                                    callBack(err, res)
+                                } else if(res2) {
+                                    callBack(err, res)
+                                }
+                            })
+                        }
+                })
+            }
+        })
+    }
+}
+
+function updateFile(fileName, media, fileId, callBack) {
+    if(fileName) {
+        fileService.getFileContent("../files", fileName, (error, stream) => {
+            if(error) {
+                callBack(error, null)
+            } else if(stream){
+                drive.files.update({
+                    auth: oauth2Client,
+                    fileId : fileId,
+                    media : {
+                        mimeType : driveProps.MEDIA_MIMETYPES[media],
+                        body : stream
+                    },
+                    fields: 'id',
+                    }, (err, res)=>{
+                        callBack(err, res)
+                })
             }
         })
     }
@@ -71,7 +136,7 @@ function createFolder(folderName, callBack) {
         name: folderName,
         mimeType: 'application/vnd.google-apps.folder',
     }
-    
+
     if(fileMetadata) {
         drive.files.create({
             auth: oauth2Client,
@@ -145,7 +210,7 @@ function moveFile(folderId, fileId, callBack) {
                     addParents: folderId,
                     removeParents: previousParents,
                     fields: 'id, parents',
-                    }, callBack)   //console.log(files.status);
+                    }, callBack) 
             }
         })
     }
@@ -162,8 +227,12 @@ module.exports = {
     getState,
     getTokens,
     setTokens,
+    shareFile,
     uploadFile,
     createFile,
     deleteFile,
-    createFolder
+    exportFile,
+    updateFile,
+    createFolder,
+    downloadFile
 }

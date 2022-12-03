@@ -52,18 +52,36 @@ function getFiles(req, res) {
   }
 }
 
-function getResponses(req, res) {
-  const name = req.query.name
-  console.log("getResponses : ", req)
-  if(name && res) {
-    google.search('name = \'' + name + '\'', (err1, file) => {
+function downloadFile(req, res) {
+  const fileId = req.query.fileId
+
+  if(fileId) {
+    google.downloadFile(fileId, (err1, res1) => {
       if(err1) {
         res.sendStatus(403)
       } else {
-        res.json({"file" : file})
+        res.json(res1.data)
       }
     })
-  }0
+  }
+}
+
+function getResponses(req, res) {
+  const name = req.query.name
+
+  if(name && res) {
+    //" error_description: 'Token has been expired or revoked."
+    google.search('name = \'' + name + '\'', (err1, res1) => {
+      console.log("error : ", err1.response.data)
+      if(err1) {
+        //res.status(400).send(err1)//.data.error_description
+        // res.send(/err1.response.data)
+        res.sendStatus(403)
+      } else {
+        res.json(res1.data.files)
+      }
+    })
+  }
 }
 
 function createFolder(req, res, callBack) {
@@ -94,30 +112,55 @@ function createFolder(req, res, callBack) {
   }
 }
 
+function uploadFile(res, req, fileName, folderId, callBack) {
+  if(fileName && folderId && req) {
+    google.createFile(fileName, req.body.media, folderId, (err2, res2) => {
+      fileService.deleteFile("../files/", fileName)
+      if(callBack) {
+        callBack(err2, res2)
+      } else if(err2) {
+        res.sendStatus(403)
+      } else {
+        res.json({"fileId" : res2.data.id})
+      }
+    })
+  }
+}
+
+function updateFile(res1, req, fileName, callBack) {
+  let fileId
+
+  if(res1 && req && fileName) {
+    fileId =  res1.data.files[0].id
+    google.updateFile(fileName, req.body.media, fileId, (err1, res1) => {
+      fileService.deleteFile("../files/", fileName)
+      callBack(err1, res1)
+    })
+  }
+}
+
 function createFile(req, res, callBack) {
   const fileName = req.body.fileName
   const folderId = req.body.folderId
+  const content = JSON.stringify(req.body.data)
 
   if(fileName) {
     exist(fileName, (err1, res1) => {
-      if(callBack && res1.data && 0 < res1.data.files.length) {
-        callBack(err1, res1)
-      } else if(err1) {
-        res.status(403).render()
-      } else if(res1.data && res1.data.files.length === 0) {
-        google.createFile(fileName, req.body.media, folderId, (err2, res2) => {
-          if(callBack) {
-            callBack(err2, res2)
-          } else if(err2) {
-            res.sendStatus(403)
-          } else {
-            res.json({"fileId" : res2.data.id})
-          }
-        })
-      } else {
-        res.json({"file" : res1})
-      }
+      fileService.writeFile("../files/", fileName, content, (error) => {
 
+        if(error) {
+          res.status(403).render()
+        } else if(callBack && res1.data && 0 < res1.data.files.length) {
+          updateFile(res1, req, fileName, callBack)
+        } else if(err1) {
+          res.status(403).render()
+        } else if(res1.data && res1.data.files.length === 0) {
+          uploadFile(res, req, fileName, folderId)
+        } else {
+          res.json({"file" : res1})
+        }
+
+      })
     })
   } else {
     res.sendStatus(403)
@@ -125,17 +168,16 @@ function createFile(req, res, callBack) {
 }
 
 function postUserResponse(req, res) {
-  //removeFolder(req, res)
   const fileName = req.body.fileName
-  const content =JSON.stringify(req.body.data)
+
   if(req && res) {
     createFolder(req, res, (err1, folderId) => {
       if(err1) {
         res.sendStatus(403)
-      } else if(fileName && content) {
+      } else if(fileName) {
         req.body.folderId = folderId
         req.body.media = "json"
-        fileService.writeFile("../files/", fileName, content)
+
         createFile(req, res, (err2, file2) => {
           if(err2) res.sendStatus(403)
           else res.json({"file" : file2})
@@ -145,6 +187,7 @@ function postUserResponse(req, res) {
       } 
     })
   }
+
 }
 
 function create(){ 
@@ -156,7 +199,7 @@ function update(){
 }
 
 function removeFolder(req, res) {
-  const folderName = req.body.folderName
+  const folderName = req.params.name
 
   if(req && res) {
     exist(folderName, (err1, res1) => {
@@ -172,15 +215,10 @@ function removeFolder(req, res) {
   }
 }
 
-function remove(id){
-  return {"message": "Hello world !"}
-}
-
 module.exports = {
   exist,
   create,
   update,
-  remove,
   getFiles,
   getState,
   getTokens,
@@ -189,5 +227,6 @@ module.exports = {
   createFolder,
   removeFolder,
   getResponses,
+  downloadFile,
   postUserResponse
 }
