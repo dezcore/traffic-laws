@@ -72,10 +72,8 @@ function getResponses(req, res) {
   if(name && res) {
     google.search('name = \'' + name + '\'', (err1, res1) => {
       if(err1) {
-        //res.status(400).send(err1)//.data.error_description
-        // res.send(/err1.response.data)
-        console.log("error : ", Object.keys(err1))
-        res.sendStatus(403)
+        res.statusCode = 401
+        res.send(err1.response.data)
       } else {
         res.json(res1.data.files)
       }
