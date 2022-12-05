@@ -1,8 +1,13 @@
 const fs = require('fs');
 const path = require('path');
+const filePath = "../file"
+const dir = path.resolve(__dirname, filePath)
 
 function appendFile(filePath, fileName, content, callBack) {
     const _path = path.resolve(__dirname, filePath + "/" + fileName)
+
+    if(!fs.existsSync(dir))
+        fs.mkdirSync(dir)
 
     if(_path) {
         try {
@@ -20,6 +25,9 @@ function appendFile(filePath, fileName, content, callBack) {
 
 function writeFile(filePath, fileName, content, callBack) {
     const _path = path.resolve(__dirname, filePath + "/" + fileName)
+
+    if(!fs.existsSync(dir))
+        fs.mkdirSync(dir)
 
     if(_path) {
         try {

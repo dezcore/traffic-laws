@@ -68,14 +68,13 @@ function downloadFile(req, res) {
 
 function getResponses(req, res) {
   const name = req.query.name
-
+  
   if(name && res) {
-    //" error_description: 'Token has been expired or revoked."
     google.search('name = \'' + name + '\'', (err1, res1) => {
-      console.log("error : ", err1.response.data)
       if(err1) {
         //res.status(400).send(err1)//.data.error_description
         // res.send(/err1.response.data)
+        console.log("error : ", Object.keys(err1))
         res.sendStatus(403)
       } else {
         res.json(res1.data.files)
@@ -92,7 +91,7 @@ function createFolder(req, res, callBack) {
       if(callBack && res1.data && 0 < res1.data.files.length) {
         callBack(err1, res1.data.files[0].id)
       } else if(err1) {
-        res.status(403).render()
+        res.sendStatus(403)
       } else if(res1.data && res1.data.files.length === 0) {
         google.createFolder(folderName, (err2, res2) => {
           if(callBack) {
@@ -147,19 +146,17 @@ function createFile(req, res, callBack) {
   if(fileName) {
     exist(fileName, (err1, res1) => {
       fileService.writeFile("../files/", fileName, content, (error) => {
-
         if(error) {
-          res.status(403).render()
+          res.sendStatus(403)
         } else if(callBack && res1.data && 0 < res1.data.files.length) {
           updateFile(res1, req, fileName, callBack)
         } else if(err1) {
-          res.status(403).render()
+          res.sendStatus(403)
         } else if(res1.data && res1.data.files.length === 0) {
           uploadFile(res, req, fileName, folderId)
         } else {
           res.json({"file" : res1})
         }
-
       })
     })
   } else {
