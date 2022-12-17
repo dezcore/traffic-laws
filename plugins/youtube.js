@@ -11,6 +11,15 @@ let oauth2Client = new google.auth.OAuth2(
     'postmessage'
 )
 
+function refreshToken(code, callBack) {
+    if(code) {
+        google.auth.fromJSON(code, (err, tokens) => {
+            if(callBack)
+                callBack(err, tokens)
+        })
+    }
+}
+
 function getTokens(req, callBack) {
     const code = req.body.code        
     if(code) {
@@ -234,5 +243,6 @@ module.exports = {
     exportFile,
     updateFile,
     createFolder,
-    downloadFile
+    downloadFile,
+    refreshToken
 }

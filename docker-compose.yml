@@ -5,6 +5,7 @@ services:
     image: trafficlaws-server
     ports:
       - "3000:3000"
+    env_file: .env
     working_dir: /app
     build:
       context: .

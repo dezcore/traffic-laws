@@ -12,3 +12,4 @@ CMD ["nodemon", "index.js"]
 
 FROM base as prod
 EXPOSE 3000
+#CMD [ "npm", "start" ]
