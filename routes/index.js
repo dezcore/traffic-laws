@@ -3,13 +3,20 @@ const router = express.Router()
 const trafficlawService = require('../services/index')
 
 function verifyToken(req, res, next) {
-  const tokens = JSON.parse(req.headers.tokens)
+  let tokens = null
+  
+  try {
+    tokens = JSON.parse(req.headers.tokens)
 
-  if(tokens) {    
-    trafficlawService.setTokens(tokens, () => {
-        next()
-    })
-  } else {
+    if(tokens) {    
+      trafficlawService.setTokens(tokens, () => {
+          next()
+      })
+    } else {
+      res.sendStatus(403)
+    }
+
+  } catch(e) {
     res.sendStatus(403)
   }
 }
