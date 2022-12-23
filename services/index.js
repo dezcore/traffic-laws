@@ -11,7 +11,7 @@ function getTokens(req, res) {
   if(req && res) {
     google.getTokens(req, (err, tokens) => {
       if(err) {
-        res.sendStatus(403)
+        res.status(403).send(err)
       } else {
         res.json({"tokens" : tokens})
       }
