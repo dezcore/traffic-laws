@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const filePath = "../file"
+const filePath = "../files"
 const dir = path.resolve(__dirname, filePath)
 
 function appendFile(filePath, fileName, content, callBack) {
@@ -31,13 +31,10 @@ function writeFile(filePath, fileName, content, callBack) {
 
     if(_path) {
         try {
-            fs.writeFile(_path, content, (err) => {
-                //if (err) callBack(err)
-                
+            fs.writeFile(_path, content, (err) => {                
+                console.log('Saved!')
                 if(callBack)
                     callBack(err)
-
-                console.log('Saved!')
             })
         } catch (error) {
             callBack(error, null)
@@ -53,7 +50,6 @@ function deleteFile(filePath, fileName, callBack) {
     if(_path) {
         try {
             fs.unlink(_path, (err) => {
-                //if (err) callBack(err);
                 if(callBack)
                     callBack(err)
             })

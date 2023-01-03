@@ -166,6 +166,7 @@ function postUserResponse(req, res) {
   const fileName = req.body.fileName
 
   if(req && res) {
+
     createFolder(req, res, (err1, folderId) => {
       if(err1) {
         res.sendStatus(403)

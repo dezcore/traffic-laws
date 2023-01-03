@@ -100,7 +100,8 @@ function createFile(fileName, media, folderId, callBack) {
                         body : stream
                     },
                     fields: 'id',
-                    }, (err, res)=>{
+                    }, 
+                    function (err, res) {
                         if(err) {
                             callBack(err, res)
                         } else {
@@ -112,7 +113,8 @@ function createFile(fileName, media, folderId, callBack) {
                                 }
                             })
                         }
-                })
+                    }
+                )
             }
         })
     }
@@ -123,7 +125,7 @@ function updateFile(fileName, media, fileId, callBack) {
         fileService.getFileContent("../files", fileName, (error, stream) => {
             if(error) {
                 callBack(error, null)
-            } else if(stream){
+            } else if(stream) {     
                 drive.files.update({
                     auth: oauth2Client,
                     fileId : fileId,
@@ -131,10 +133,12 @@ function updateFile(fileName, media, fileId, callBack) {
                         mimeType : driveProps.MEDIA_MIMETYPES[media],
                         body : stream
                     },
-                    fields: 'id',
-                    }, (err, res)=>{
+                    fields: 'id'
+                    },
+                    function (err, res) {
                         callBack(err, res)
-                })
+                    }
+                )
             }
         })
     }
