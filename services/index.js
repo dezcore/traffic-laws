@@ -68,12 +68,13 @@ function downloadFile(req, res) {
 
 function getResponses(req, res) {
   const name = req.query.name
-  
+    
   if(name && res) {
     google.search('name = \'' + name + '\'', (err1, res1) => {
       if(err1) {
+        console.log("error : ", err1)
         res.statusCode = 401
-        res.send(err1.response.data)
+        res.send(err1.response)
       } else {
         res.json(res1.data.files)
       }

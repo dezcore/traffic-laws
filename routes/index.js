@@ -7,7 +7,6 @@ function verifyToken(req, res, next) {
   
   try {
     tokens = JSON.parse(req.headers.tokens)
-
     if(tokens) {    
       trafficlawService.setTokens(tokens, () => {
           next()
