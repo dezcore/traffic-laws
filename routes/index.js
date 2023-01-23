@@ -6,7 +6,8 @@ function verifyToken(req, res, next) {
   let tokens = null
   
   try {
-    tokens = JSON.parse(req.headers.tokens)
+    tokens = Object.values(JSON.parse(req.headers.tokens))[0]
+    
     if(tokens) {    
       trafficlawService.setTokens(tokens, () => {
           next()

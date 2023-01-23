@@ -24,7 +24,6 @@ function getTokens(req, callBack) {
     const code = req.body.code        
     if(code) {
         oauth2Client.getToken(code, (err, tokens) => {
-            console.log("getToken : ", tokens)
             if(callBack)
                 callBack(err, tokens)
         })
@@ -33,7 +32,6 @@ function getTokens(req, callBack) {
 
 function setTokens(tokens, callBack) {
     if(tokens) {
-        console.log("setToken : ", tokens)
         oauth2Client.setCredentials(tokens)
         callBack()
     }
