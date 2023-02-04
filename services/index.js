@@ -86,7 +86,8 @@ function createFolder(req, res, callBack) {
 
   if(folderName) {
     exist(folderName, (err1, res1) => {
-      if(callBack && res1.data && 0 < res1.data.files.length) {
+
+      if(callBack && res1 && res1.data && 0 < res1.data.files.length) {
         callBack(err1, res1.data.files[0].id)
       } else if(err1) {
         res.sendStatus(403)
@@ -110,7 +111,7 @@ function createFolder(req, res, callBack) {
 }
 
 function uploadFile(res, req, fileName, folderId, callBack) {
-  if(fileName && folderId && req) {
+  if(fileName && folderId && req) {   
     google.createFile(fileName, req.body.media, folderId, (err2, res2) => {
       fileService.deleteFile("../files/", fileName)
       if(callBack) {
@@ -137,29 +138,16 @@ function updateFile(res1, req, fileName, callBack) {
 }
 
 function createFile(req, res, callBack) {
-  const fileName = req.body.fileName
-  const folderId = req.body.folderId
-  const content = JSON.stringify(req.body.data)
-
-  if(fileName) {
-    exist(fileName, (err1, res1) => {
-      fileService.writeFile("../files/", fileName, content, (error) => {
-        if(error) {
-          res.sendStatus(403)
-        } else if(callBack && res1.data && 0 < res1.data.files.length) {
-          updateFile(res1, req, fileName, callBack)
-        } else if(err1) {
-          res.sendStatus(403)
-        } else if(res1.data && res1.data.files.length === 0) {
-          uploadFile(res, req, fileName, folderId)
-        } else {
-          res.json({"file" : res1})
-        }
-      })
-    })
-  } else {
-    res.sendStatus(403)
-  }
+  google.createFile(req, function(err, response){
+    if(err) {
+      res.statusCode = 403
+      res.send(err)
+    } else if(response) {
+      res.json({"file" : response})
+    } else if(callBack) {
+      callBack(err, response)
+    }
+  })
 }
 
 function postUserResponse(req, res) {
@@ -169,17 +157,20 @@ function postUserResponse(req, res) {
 
     createFolder(req, res, (err1, folderId) => {
       if(err1) {
-        res.sendStatus(403)
+        res.statusCode = 403
+        res.send(err1.response)
       } else if(fileName) {
         req.body.folderId = folderId
         req.body.media = "json"
+        
 
         createFile(req, res, (err2, file2) => {
           if(err2) res.sendStatus(403)
           else res.json({"file" : file2})
         })
       } else {
-        res.sendStatus(403)
+        res.statusCode = 403
+        res.send(err1.response)
       } 
     })
   }

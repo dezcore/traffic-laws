@@ -52,7 +52,7 @@ function search(filter, callBack) {
         q: filter,
         fields: 'nextPageToken, files(id, name)',
         spaces: 'drive',
-        }, (err1, res) => {
+        }, function (err1, res) {
             callBack(err1, res)
     })
 }
@@ -88,42 +88,66 @@ function shareFile(fileId, callBack) {
             },
             fileId: fileId,
             fields: 'id',
-        }, callBack)
+        }, function(err, res) {
+            callBack(err, res)
+        })
     }
 }
 
-function createFile(fileName, media, folderId, callBack) {
+function getFileStream(fileName, callBack) {
     if(fileName) {
         fileService.getFileContent("../files", fileName, (error, stream) => {
-            if(error) {
+            callBack(error, stream)
+        })
+    }
+}
+
+function flushStream(fileName, media, folderId, stream, callBack) {
+    drive.files.create({
+        auth: oauth2Client,
+        resource:  {
+            name: fileName,
+            parents : [folderId],
+        },
+        media : {
+            mimeType : driveProps.MEDIA_MIMETYPES[media],
+            body : stream
+        },
+        fields: 'id',
+        },
+        function (err, res) {
+            console.log("err : ", err)
+            console.log("after flushStream : ", res)
+            fileService.deleteFile("../files/", fileName)
+            /*if(err) {
                 callBack(err, null)
-            } else if(stream) {
-                drive.files.create({
-                    auth: oauth2Client,
-                    resource:  {
-                        name: fileName,
-                        parents : [folderId],
-                    },
-                    media : {
-                        mimeType : driveProps.MEDIA_MIMETYPES[media],
-                        body : stream
-                    },
-                    fields: 'id',
-                    }, 
-                    function (err, res) {
-                        if(err) {
-                            callBack(err, res)
-                        } else {
-                            shareFile(res.data.id, (err2, res2) => {
-                                if(err2) {
-                                    callBack(err, res)
-                                } else if(res2) {
-                                    callBack(err, res)
-                                }
-                            })
-                        }
-                    }
-                )
+            } else {
+                shareFile(res.data.id, callBack)
+            }*/
+        }
+    )
+    fileService.deleteFile("../files/", fileName)
+}
+
+function createFile(req, callBack) {
+    const media = req.body.media
+    const fileName = req.body.fileName
+    const folderId = req.body.folderId
+    const content = JSON.stringify(req.body.data)
+
+    //exist(fileName, (err1, res1) => {
+    //updateFile(res1, req, fileName, callBack)
+    //uploadFile(res, req, fileName, folderId)
+
+    if(fileName) {
+        fileService.writeFile("../files/", fileName, content, (err) => {
+            if(err){
+                callBack(err, null)
+            } else {
+                getFileStream(fileName, function (error, stream) {
+                    if(error) callBack(error, null)
+                    else flushStream(fileName, media, folderId, stream, callBack)
+                })   
             }
         })
     }

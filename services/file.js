@@ -11,7 +11,7 @@ function appendFile(filePath, fileName, content, callBack) {
 
     if(_path) {
         try {
-            fs.appendFile(_path, content, function (err) {
+            return fs.appendFile(_path, content, function (err) {
                 if (err) callBack(err);
                 console.log('Saved!');
             });
@@ -31,7 +31,7 @@ function writeFile(filePath, fileName, content, callBack) {
 
     if(_path) {
         try {
-            fs.writeFile(_path, content, (err) => {                
+            return fs.writeFile(_path, content, (err) => {                
                 console.log('Saved!')
                 if(callBack)
                     callBack(err)
@@ -49,14 +49,12 @@ function deleteFile(filePath, fileName, callBack) {
     
     if(_path) {
         try {
-            fs.unlink(_path, (err) => {
+            return fs.unlink(_path, (err) => {
                 if(callBack)
                     callBack(err)
             })
         } catch (error) {
             callBack(error, null)
-            // expected output: ReferenceError: nonExistentFunction is not defined
-            // Note - error messages will vary depending on browser
         }
     }
 }
@@ -68,11 +66,14 @@ function getFileContent(filePath, fileName, callBack) {
     if(_path) {
         try {
             stream = fs.createReadStream(_path)
+            //stream.on("error", err => console.log("err : ", err))
+            //stream.on("data", chunk => console.log("chunk : ", chunk))
+            /*stream.on('data', function (chunk) {
+                callBack(null, chunk)
+            })*/
             callBack(null, stream)
         } catch (error) {
             callBack(error, null)
-            // expected output: ReferenceError: nonExistentFunction is not defined
-            // Note - error messages will vary depending on browser
         }
     }
 }
