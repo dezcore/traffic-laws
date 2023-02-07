@@ -3,6 +3,8 @@ const drive = google.drive('v3')
 const fileService = require('./../services/file')
 const driveProps = require('./../properties/drive')
 
+let Readable = require('stream').Readable
+
 let authed = false
 
 let oauth2Client = new google.auth.OAuth2(
@@ -57,6 +59,19 @@ function search(filter, callBack) {
     })
 }
 
+function exist(name, callBack) {
+    let files
+    let exist = false
+
+    if(name) {
+        search('name = \'' + name + '\'', (err, res) => {
+            exist = res && res.data ? res.data.files.length > 0 : false
+            files = res && res.data ? res.data.files : []
+            callBack(err, exist, files)
+        })
+    }
+}
+
 function exportFile(fileId, callBack) {
     if(fileId) {
         drive.files.export({
@@ -94,39 +109,62 @@ function shareFile(fileId, callBack) {
     }
 }
 
-function getFileStream(fileName, callBack) {
-    if(fileName) {
-        fileService.getFileContent("../files", fileName, (error, stream) => {
-            callBack(error, stream)
-        })
+function getStream(content, callBack) {
+    let stream
+
+    if(content) {
+        stream = new Readable()
+        stream.push(content)    // the string you want
+        stream.push(null)      // indicates end-of-file basically - the end of the stream
+        
+        if(callBack)
+            callBack(stream)
     }
 }
 
-function flushStream(fileName, media, folderId, stream, callBack) {
-    drive.files.create({
-        auth: oauth2Client,
-        resource:  {
-            name: fileName,
-            parents : [folderId],
-        },
-        media : {
-            mimeType : driveProps.MEDIA_MIMETYPES[media],
-            body : stream
-        },
-        fields: 'id',
-        },
-        function (err, res) {
-            console.log("err : ", err)
-            console.log("after flushStream : ", res)
-            fileService.deleteFile("../files/", fileName)
-            /*if(err) {
-                callBack(err, null)
-            } else {
-                shareFile(res.data.id, callBack)
-            }*/
-        }
-    )
-    fileService.deleteFile("../files/", fileName)
+function flushStream(fileName, media, folderId, content, callBack) {
+    getStream(content, (stream) => {
+        drive.files.create({
+            auth: oauth2Client,
+            resource:  {
+                name: fileName,
+                parents : [folderId],
+            },
+            media : {
+                mimeType : driveProps.MEDIA_MIMETYPES[media],
+                body : stream
+            },
+            fields: 'id',
+            },
+            function (err, res) {
+                if(err) {
+                    callBack(err, null)
+                } else {
+                    shareFile(res.data.id, callBack)
+                }
+            }
+        )
+    })
+}
+
+function updateFile(fileId, media, content, callBack) {
+    if(fileId) {
+        getStream(content, (stream) => {
+            drive.files.update({
+                auth: oauth2Client,
+                fileId : fileId,
+                media : {
+                    mimeType : driveProps.MEDIA_MIMETYPES[media],
+                    body : stream
+                },
+                fields: 'id'
+                },
+                function (err, res) {
+                    callBack(err, res)
+                }
+            )
+        })
+    }
 }
 
 function createFile(req, callBack) {
@@ -135,44 +173,14 @@ function createFile(req, callBack) {
     const folderId = req.body.folderId
     const content = JSON.stringify(req.body.data)
 
-    //exist(fileName, (err1, res1) => {
-    //updateFile(res1, req, fileName, callBack)
-    //uploadFile(res, req, fileName, folderId)
-
     if(fileName) {
-        fileService.writeFile("../files/", fileName, content, (err) => {
-            if(err){
-                callBack(err, null)
-            } else {
-                getFileStream(fileName, function (error, stream) {
-                    if(error) callBack(error, null)
-                    else flushStream(fileName, media, folderId, stream, callBack)
-                })   
-            }
-        })
-    }
-}
-
-function updateFile(fileName, media, fileId, callBack) {
-    if(fileName) {
-        fileService.getFileContent("../files", fileName, (error, stream) => {
-            if(error) {
-                callBack(error, null)
-            } else if(stream) {     
-                drive.files.update({
-                    auth: oauth2Client,
-                    fileId : fileId,
-                    media : {
-                        mimeType : driveProps.MEDIA_MIMETYPES[media],
-                        body : stream
-                    },
-                    fields: 'id'
-                    },
-                    function (err, res) {
-                        callBack(err, res)
-                    }
-                )
-            }
+        exist(fileName, (err, exist, files) => {
+            if(err)
+                callBack(err)
+            else if(!exist)
+                flushStream(fileName, media, folderId, content, callBack)
+            else if(exist && files[0] && files[0].id)
+                updateFile(files[0].id, media, content, callBack)
         })
     }
 }
@@ -184,11 +192,19 @@ function createFolder(folderName, callBack) {
     }
 
     if(fileMetadata) {
-        drive.files.create({
-            auth: oauth2Client,
-            resource: fileMetadata,
-            fields: 'id',
-            }, callBack)
+        exist(folderName, (err, exist, files) => {
+            if(err) {
+                callBack(err)
+            } else if(!exist) {
+                drive.files.create({
+                    auth: oauth2Client,
+                    resource: fileMetadata,
+                    fields: 'id',
+                    }, callBack)
+            }  if(exist && files[0] && files[0].id) {
+                callBack(null,  files[0].id)
+            }
+        })
     }
 }
 
@@ -201,24 +217,11 @@ function deleteFile(fileId, callBack) {
     }
 }
 
-function uploadFile(fileName, media, callBack) {
-    if(fileName && media) {
-        fileService.getFileContent("../files", fileName, (stream) => {
-            if(stream) {
-                drive.files.create({
-                    auth: oauth2Client,
-                    resource:  {
-                        name: fileName,
-                        parents : [folderId],
-                        mimeType: driveProps.RESOURCES_MIMETYPES['mimeType'],
-                    },
-                    media : {
-                        mimeType: driveProps.MEDIA_MIMETYPES[ 'csv'],
-                        body: stream,
-                    },
-                    fields: 'id',
-                    }, callBack)
-            }
+function deleteFolder(name, callBack) {
+    if(name) {
+        exist(name, (err, exist, files) => {
+            if(exist && files[0] && files[0].id)
+            deleteFile(files[0].id, callBack)
         })
     }
 }
@@ -274,12 +277,12 @@ module.exports = {
     getTokens,
     setTokens,
     shareFile,
-    uploadFile,
     createFile,
     deleteFile,
     exportFile,
     updateFile,
     revokeToken,
+    deleteFolder,
     createFolder,
     downloadFile,
     refreshToken,

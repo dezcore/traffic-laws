@@ -24,20 +24,6 @@ function getState(res) {
    google.getState(res)
 }
 
-function exist(name, callBack) {
-  if(name) {
-    google.search('name = \'' + name + '\'', (err1, exist) => {
-      if(callBack) {
-        callBack(err1, exist)
-      } else if(err1) {
-        res.sendStatus(403)
-      } else {
-        res.json({"exist" : exist})
-      }
-    })
-  }
-}
-
 function getFiles(req, res) {
   if(req && res) {
     google.search(null, (err1, response) => {
@@ -68,7 +54,7 @@ function downloadFile(req, res) {
 
 function getResponses(req, res) {
   const name = req.query.name
-      
+
   if(name && res) {
     google.search('name = \'' + name + '\'', (err1, res1) => {
       if(err1) {
@@ -85,54 +71,14 @@ function createFolder(req, res, callBack) {
   const folderName = req.body.folderName
 
   if(folderName) {
-    exist(folderName, (err1, res1) => {
-
-      if(callBack && res1 && res1.data && 0 < res1.data.files.length) {
-        callBack(err1, res1.data.files[0].id)
-      } else if(err1) {
-        res.sendStatus(403)
-      } else if(res1.data && res1.data.files.length === 0) {
-        google.createFolder(folderName, (err2, res2) => {
-          if(callBack) {
-            callBack(err2, res2.data.id)
-          } else if(err1) {
-            res.sendStatus(403)
-          } else {
-            res.json({"file" : res2.data.files[0].id})
-          }
-        })
-      } else {
-        res.json({"file" : res1.data.files[0].id})
-      }
-    })
-  } else {
-    res.sendStatus(403)
-  }
-}
-
-function uploadFile(res, req, fileName, folderId, callBack) {
-  if(fileName && folderId && req) {   
-    google.createFile(fileName, req.body.media, folderId, (err2, res2) => {
-      fileService.deleteFile("../files/", fileName)
+    google.createFolder(folderName, (err, res) => {
       if(callBack) {
-        callBack(err2, res2)
-      } else if(err2) {
+        callBack(err, res)
+      } else if(err) {
         res.sendStatus(403)
-      } else {
-        res.json({"fileId" : res2.data.id})
+      } else if(res.data && res.data.files) {
+        res.json({"file" : res.data.files[0].id})
       }
-    })
-  }
-}
-
-function updateFile(res1, req, fileName, callBack) {
-  let fileId
-
-  if(res1 && req && fileName) {
-    fileId =  res1.data.files[0].id
-    google.updateFile(fileName, req.body.media, fileId, (err1, res1) => {
-      fileService.deleteFile("../files/", fileName)
-      callBack(err1, res1)
     })
   }
 }
@@ -154,7 +100,6 @@ function postUserResponse(req, res) {
   const fileName = req.body.fileName
 
   if(req && res) {
-
     createFolder(req, res, (err1, folderId) => {
       if(err1) {
         res.statusCode = 403
@@ -162,8 +107,6 @@ function postUserResponse(req, res) {
       } else if(fileName) {
         req.body.folderId = folderId
         req.body.media = "json"
-        
-
         createFile(req, res, (err2, file2) => {
           if(err2) res.sendStatus(403)
           else res.json({"file" : file2})
@@ -189,21 +132,11 @@ function removeFolder(req, res) {
   const folderName = req.params.name
 
   if(req && res) {
-    exist(folderName, (err1, res1) => {
-      if(err1) {
-        res.sendStatus(403)
-      } else if(res1.data && 0 < res1.data.files.length) {
-        google.deleteFile(res1.data.files[0].id, (err2, res2) => {
-          if(err2) res.sendStatus(403)
-          else res.json({"file" : res2}) 
-        })
-      }
-    })
+    google.deleteFolder(folderName, callBack)
   }
 }
 
 module.exports = {
-  exist,
   create,
   update,
   getFiles,
