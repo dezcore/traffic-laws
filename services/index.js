@@ -1,7 +1,6 @@
 const helper = require('../helper')
 const config = require('../config')
 const google = require('./../plugins/youtube')
-const fileService = require('./file')
 
 function setTokens(tokens, callBack) {
   google.setTokens(tokens, callBack)
@@ -132,7 +131,14 @@ function removeFolder(req, res) {
   const folderName = req.params.name
 
   if(req && res) {
-    google.deleteFolder(folderName, callBack)
+    google.deleteFolder(folderName, (err, response)=>{
+      if(err) {
+        res.statusCode = 403
+        res.send(err)
+      } else if(response) {
+        res.json({"delete" : response})
+      } 
+    })
   }
 }
 
