@@ -3,6 +3,7 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const app = express();
 const port = process.env.PORT || 3000;
+const googleRouter = require('./routes/google');
 const trafficlawsRouter = require('./routes/index');
 
 app.use(require('cors')())
@@ -20,6 +21,8 @@ app.get('/', (req, res) => {
 })
 
 app.use('/trafficlaws', trafficlawsRouter);
+
+app.use('/trafficlaws/google', googleRouter);
 
 /* Error handler middleware */
 app.use((err, req, res, next) => {
