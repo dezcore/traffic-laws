@@ -6,13 +6,23 @@ function setTokens(tokens, callBack) {
   google.setTokens(tokens, callBack)
 }
 
+function generateSessionID(len) {
+  const charSet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+  let id = "";
+  for (let i = 0; i < len; i++) {
+      var randomPoz = Math.floor(Math.random() * charSet.length);
+      id += charSet.substring(randomPoz, randomPoz + 1);
+  }
+  return id;
+}
+
 function getTokens(req, res) {
   if(req && res) {
     google.getTokens(req, (err, tokens) => {
       if(err) {
         res.status(403).send(err)
       } else {
-        res.json({"tokens" : tokens})
+        res.json({"tokens" : tokens, sessionID : generateSessionID(32)})
       }
     })
   }
