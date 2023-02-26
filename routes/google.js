@@ -3,6 +3,7 @@ const router = express.Router()
 const youtubeService = require('../services/youtube')
 
 router.get('/youtube/download', (req, res) => {
+  console.log("Current working directory: ", process.cwd());
   youtubeService.download(req, res)
 })
 

@@ -147,9 +147,9 @@ function streamCutRes(res, filePath) {
 function getFilePath(videoId, dir, format, callBack) {
   //const sessionID = generateSessionID(32); -> return sessionID
   //path.resolve(dataPath, `../cache` + dir)
-  const cacheDir =  path.resolve(dataPath, `/cache` + dir)
-  const filePath = path.resolve(dataPath, `/cache`+ dir + `${md5(videoId)}.` + format)
-  const outputPath = path.resolve(dataPath,  `/cache`+ dir + `${md5(videoId)}_out.` + format)
+  const cacheDir =  path.resolve(process.cwd(), `/cache` + dir) //path.join(process.cwd(), 'posts')
+  const filePath = path.resolve(process.cwd(), `/cache`+ dir + `${md5(videoId)}.` + format)
+  const outputPath = path.resolve(process.cwd(),  `/cache`+ dir + `${md5(videoId)}_out.` + format)
 
   createDir(cacheDir)
 
@@ -177,8 +177,8 @@ function merge(video, audio, req, res) {
   let progress
   const start = Number(req.query.start)
   const end = Number(req.query.end)
-  const mergeDir =  path.resolve(dataPath, `/cache/merge/`)
-  const outputPath = path.resolve(dataPath, `/cache/merge/merged.mp4`)
+  const mergeDir =  path.resolve(process.cwd(), `/cache/merge/`)
+  const outputPath = path.resolve(process.cwd(), `/cache/merge/merged.mp4`)
 
   createDir(mergeDir)
   if(video && audio) {
