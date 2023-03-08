@@ -41,6 +41,18 @@ function rmFile(filePath, callBack) {
   }
 }
 
+function existFile(path) {
+  let exist = false
+  if(path) {
+    try {
+      exist = fs.existsSync(path)
+    } catch(err) {
+      console.error(err)
+    }
+  }
+  return exist
+}
+
 function getSessionId(req) {
   let tokens
   let sessionId = null
@@ -131,25 +143,34 @@ function setConversionProgress(req, progress) {
   } 
 }
 
-function streamCutRes(res, filePath) {
+function streamCutRes(res, filePath, deleteFile) {
+  let stream
   if(res && filePath) {
-    const file = GrowingFile.open(filePath, FILE_OPTIONS);
+    const file = GrowingFile.open(filePath, FILE_OPTIONS)
 
     file.on('error', (err) => {
       console.log("error (streamCutRes) : ", err)
-      res.end();
-      file.destroy();
-    });
-    file.pipe(res)
+      res.end()
+      file.destroy()
+    })
+
+    stream = file.pipe(res)
+
+    stream.on('finish', () => {
+      console.log("Finished stream")
+      if(deleteFile)
+        rmFile(filePath)
+    })
   }
 }
 
 function getFilePath(videoId, dir, format, callBack) {
   //const sessionID = generateSessionID(32); -> return sessionID
   //path.resolve(dataPath, `../cache` + dir)
-  const cacheDir =  path.resolve(process.cwd(), `/cache` + dir) //path.join(process.cwd(), 'posts')
-  const filePath = path.resolve(process.cwd(), `/cache`+ dir + `${md5(videoId)}.` + format)
-  const outputPath = path.resolve(process.cwd(),  `/cache`+ dir + `${md5(videoId)}_out.` + format)
+  //console.log("process.cwd() : ", process.cwd())
+  const cacheDir =  path.resolve(dataPath, `/cache` + dir)
+  const filePath = path.resolve(dataPath, `/cache`+ dir + `${md5(videoId)}.` + format)
+  const outputPath = path.resolve(dataPath,  `/cache`+ dir + `${md5(videoId)}_out.` + format)
 
   createDir(cacheDir)
 
@@ -177,8 +198,8 @@ function merge(video, audio, req, res) {
   let progress
   const start = Number(req.query.start)
   const end = Number(req.query.end)
-  const mergeDir =  path.resolve(process.cwd(), `/cache/merge/`)
-  const outputPath = path.resolve(process.cwd(), `/cache/merge/merged.mp4`)
+  const mergeDir =  path.resolve(dataPath, `/cache/merge/`)
+  const outputPath = path.resolve(dataPath, `/cache/merge/merged.mp4`)
 
   createDir(mergeDir)
   if(video && audio) {
@@ -206,6 +227,37 @@ function hmsToSeconds(hms) {
   return seconds
 }
 
+function cutExistAudio(input, output, req, res, callBack) {
+  let progress
+  const start = Number(req.query.start)
+  const end = Number(req.query.end)
+
+  if(input) {
+      ffmpeg(fs.createReadStream(input))
+      .seekInput(start)
+      .input(input)
+      .audioBitrate(128)
+      .duration(end - start)
+      .format('mp3')
+      .output(output)
+      .on('progress', function({timemark}) {
+        progress = Math.floor((hmsToSeconds(timemark)/ (end - start)) * 100)
+        setAudioProgress(req, progress) 
+      })
+      .on('error (convertToMp3) ', (err) => {
+        writeStream.destroy();
+      })
+      .once('end', () => {
+        console.log(' finished (cutExistAudio) !') 
+        if(callBack)
+          callBack(output)
+        else
+          streamCutRes(res, output, true)
+      })
+      .run();
+  }
+}
+
 function convertToMp3(audio, writeStream, filePath, req, res, callBack) {
   let progress
   const start = req.query.start
@@ -213,8 +265,8 @@ function convertToMp3(audio, writeStream, filePath, req, res, callBack) {
 
   if(audio) {
     ffmpeg(audio)
-        .audioBitrate(128)
         .seekInput(start)
+        .audioBitrate(128)
         .duration(end - start)
         .format('mp3')
         .once('start', () => console.log("start"))
@@ -223,7 +275,7 @@ function convertToMp3(audio, writeStream, filePath, req, res, callBack) {
           setAudioProgress(req, progress) 
         })
         .on('error (convertToMp3) ', (err) => {
-          audio.destroy();
+          //audio.destroy();
           writeStream.destroy();
         })
         .once('end', () => {
@@ -259,7 +311,7 @@ function convertToMp4(filePath, outputPath, req, res, callBack) {
         if(callBack)
           callBack(outputPath)
         else
-          streamCutRes(res, outputPath) 
+          streamCutRes(res, outputPath, true) 
       }
     })
     .on('error', err => console.log('error: ', err))
@@ -272,18 +324,23 @@ function cutVideoToMp3(req, res, callBack) {
   const videoId = req.query.videoId
 
   if(req && res) {
-    audio = ytdl(videoId, { quality: 'highestaudio' })
-
-    audio.on('error', (err) => {
-      console.log("error (videoToMp3) : ", err)
-    })
-
-    audio.once('progress', () => {
-      getFilePath(videoId,'/mp3/', 'mp3', (filePath/*, outputPath*/) => {
-        createStream(filePath, (writeStream) => {
-          convertToMp3(audio, writeStream, filePath, req, res, callBack)
+    getFilePath(videoId,'/mp3/', 'mp3', (filePath, outputPath) => {
+      if(existFile(filePath)) {
+        console.log("Audio exist : ", filePath)
+        cutExistAudio(filePath, outputPath, req, res, callBack)
+      } else {
+        console.log("Audio no exist : ", filePath)
+        audio = ytdl(videoId, { quality: 'highestaudio' })
+        audio.on('error', (err) => {
+          console.log("error (videoToMp3) : ", err)
         })
-      })
+
+        audio.once('progress', () => {
+          createStream(filePath, (writeStream) => {
+            convertToMp3(audio, writeStream, filePath, req, res, callBack)
+          })
+        })
+      }
     })
   }
 }
@@ -292,20 +349,26 @@ function cutVideoToMp4(req, res, callBack) {
   let progress
   const url = req.query.yUrl
   const videoId = req.query.videoId
-
+  
   if(req && res) {
     getFilePath(videoId, '/mp4/', 'mp4', (filePath, outputPath) => {
-      createStream(filePath, (writeStream) => {
-        ytdl(url, { quality: 'highestvideo' })
-        .on('progress', (length, downloaded, totalLength) => {
-          progress = (downloaded/totalLength) * 100
-          setConversionProgress(req, progress)
-
-          if(progress === 100)
-            convertToMp4(filePath, outputPath, req, res, callBack)
-
-        }).pipe(writeStream)
-      })
+      if(existFile(filePath)) {
+        console.log("Video exist: ", filePath)
+        convertToMp4(filePath, outputPath, req, res, callBack)
+      } else {
+        console.log("Video no exist : ", filePath)
+        createStream(filePath, (writeStream) => {
+          ytdl(url, { quality: 'highestvideo' })
+          .on('progress', (length, downloaded, totalLength) => {
+            progress = (downloaded/totalLength) * 100
+            setConversionProgress(req, progress)
+            //console.log("progress : ", progress)
+            if(progress === 100)
+              convertToMp4(filePath, outputPath, req, res, callBack)
+  
+          }).pipe(writeStream)
+        })
+      }
     })
   }
 }

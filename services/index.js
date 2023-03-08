@@ -61,9 +61,37 @@ function downloadFile(req, res) {
   }
 }
 
+function getFile(req, res, callBack) {
+  const name = req.params.name
+
+  if(name && res) {
+    google.search('name = \'' + name + '\'', (err1, res1) => {
+      if(err1) {
+        res.statusCode = 401
+        res.send(err1.response)
+      } else {
+        if(callBack)
+          callBack(res1.data.files)
+        else
+          res.json(res1.data.files)
+      }
+    })
+  }
+}
+
+function getFileContent(req, res) {
+  getFile(req, res, (files) => {
+    if(files[0] && files[0].id) {
+      req.query.fileId = files[0].id
+      downloadFile(req, res)
+    } else {
+      res.json({'files': []})
+    }
+  })
+}
+
 function getResponses(req, res) {
   const name = req.query.name
-
   if(name && res) {
     google.search('name = \'' + name + '\'', (err1, res1) => {
       if(err1) {
@@ -137,6 +165,21 @@ function update(){
  return {"message": "Hello world !"}
 }
 
+function removeFile(req, res) {
+  const fileId = req.params.id
+
+  if(req && res) {
+    google.deleteFile(fileId, (err, response)=>{
+      if(err) {
+        res.statusCode = 403
+        res.send(err)
+      } else if(response) {
+        res.json({"delete" : response})
+      } 
+    })
+  }
+}
+
 function removeFolder(req, res) {
   const folderName = req.params.name
 
@@ -155,14 +198,17 @@ function removeFolder(req, res) {
 module.exports = {
   create,
   update,
+  getFile,
   getFiles,
   getState,
   getTokens,
   setTokens,
   createFile,
+  removeFile, 
   createFolder,
   removeFolder,
   getResponses,
   downloadFile,
+  getFileContent,
   postUserResponse
 }

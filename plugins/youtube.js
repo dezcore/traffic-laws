@@ -122,29 +122,33 @@ function getStream(content, callBack) {
     }
 }
 
-function flushStream(fileName, media, folderId, content, callBack) {
-    getStream(content, (stream) => {
-        drive.files.create({
-            auth: oauth2Client,
-            resource:  {
-                name: fileName,
-                parents : [folderId],
-            },
-            media : {
-                mimeType : driveProps.MEDIA_MIMETYPES[media],
-                body : stream
-            },
-            fields: 'id',
-            },
-            function (err, res) {
-                if(err) {
-                    callBack(err, null)
-                } else {
-                    shareFile(res.data.id, callBack)
+function flushStream(fileName, media, req, content, callBack) {
+    const folderId = req.body.folderId
+
+    if(folderId) {
+        getStream(content, (stream) => {
+            drive.files.create({
+                auth: oauth2Client,
+                resource:  {
+                    name: fileName,
+                    parents : [folderId],
+                },
+                media : {
+                    mimeType : driveProps.MEDIA_MIMETYPES[media],
+                    body : stream
+                },
+                fields: 'id',
+                },
+                function (err, res) {
+                    if(err) {
+                        callBack(err, null)
+                    } else {
+                        shareFile(res.data.id, callBack)
+                    }
                 }
-            }
-        )
-    })
+            )
+        })
+    }
 }
 
 function updateFile(fileId, media, content, callBack) {
@@ -170,7 +174,6 @@ function updateFile(fileId, media, content, callBack) {
 function createFile(req, callBack) {
     const media = req.body.media
     const fileName = req.body.fileName
-    const folderId = req.body.folderId
     const content = JSON.stringify(req.body.data)
 
     if(fileName) {
@@ -178,7 +181,7 @@ function createFile(req, callBack) {
             if(err)
                 callBack(err)
             else if(!exist)
-                flushStream(fileName, media, folderId, content, callBack)
+                flushStream(fileName, media, req, content, callBack)
             else if(exist && files[0] && files[0].id)
                 updateFile(files[0].id, media, content, callBack)
         })
