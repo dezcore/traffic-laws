@@ -109,8 +109,9 @@ function createFolder(req, res, callBack) {
 
   if(folderName) {
     google.createFolder(folderName, (err, res) => {
+      let id = typeof res === "string" ? res : res.data.id
       if(callBack) {
-        callBack(err, res)
+        callBack(err, id)
       } else if(err) {
         res.sendStatus(403)
       } else if(res.data && res.data.files) {

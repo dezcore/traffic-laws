@@ -124,7 +124,7 @@ function getStream(content, callBack) {
 
 function flushStream(fileName, media, req, content, callBack) {
     const folderId = req.body.folderId
-
+    
     if(folderId) {
         getStream(content, (stream) => {
             drive.files.create({
