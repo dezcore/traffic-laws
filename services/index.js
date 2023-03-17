@@ -63,7 +63,7 @@ function downloadFile(req, res) {
 
 function getFile(req, res, callBack) {
   const name = req.params.name
-
+  
   if(name && res) {
     google.search('name = \'' + name + '\'', (err1, res1) => {
       if(err1) {
@@ -85,7 +85,7 @@ function getFileContent(req, res) {
       req.query.fileId = files[0].id
       downloadFile(req, res)
     } else {
-      res.json({'files': []})
+      res.json([])
     }
   })
 }
@@ -106,7 +106,6 @@ function getResponses(req, res) {
 
 function createFolder(req, res, callBack) {
   const folderName = req.body.folderName
-
   if(folderName) {
     google.createFolder(folderName, (err, res) => {
       let id = typeof res === "string" ? res : res.data.id
@@ -136,7 +135,7 @@ function createFile(req, res, callBack) {
 
 function postUserResponse(req, res) {
   const fileName = req.body.fileName
-
+  
   if(req && res) {
     createFolder(req, res, (err1, folderId) => {
       if(err1) {
@@ -146,6 +145,7 @@ function postUserResponse(req, res) {
         req.body.folderId = folderId
         req.body.media = "json"
         createFile(req, res, (err2, file2) => {
+          console.log("error : ", err2)
           if(err2) res.sendStatus(403)
           else res.json({"file" : file2})
         })
