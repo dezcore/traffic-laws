@@ -54,7 +54,7 @@ router.delete('/drive/file/:id',  verifyToken, (req, res) => {
   trafficlawService.removeFile(req, res)
 })
 
-router.delete('/folder/:name',  verifyToken, (req, res) => {
+router.delete('/drive/folder/:name',  verifyToken, (req, res) => {
   trafficlawService.removeFolder(req, res)
 })
 

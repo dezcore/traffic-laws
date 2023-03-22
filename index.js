@@ -4,6 +4,7 @@ const bodyParser = require('body-parser');
 const app = express();
 const port = process.env.PORT || 3000;
 const googleRouter = require('./routes/google');
+const openaiRouter = require('./routes/openai');
 const trafficlawsRouter = require('./routes/index');
 
 app.use(require('cors')())
@@ -21,7 +22,7 @@ app.get('/', (req, res) => {
 })
 
 app.use('/trafficlaws', trafficlawsRouter);
-
+app.use('/trafficlaws/openai', openaiRouter);
 app.use('/trafficlaws/google', googleRouter);
 
 /* Error handler middleware */
