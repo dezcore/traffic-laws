@@ -146,8 +146,9 @@ function setConversionProgress(req, progress) {
 function streamCutRes(res, filePath, deleteFile) {
   let stream
   if(res && filePath) {
+    console.log("streamCutRes : ", filePath)
     const file = GrowingFile.open(filePath, FILE_OPTIONS)
-
+    console.log("test after")
     file.on('error', (err) => {
       console.log("error (streamCutRes) : ", err)
       res.end()
@@ -168,9 +169,10 @@ function getFilePath(videoId, dir, format, callBack) {
   //const sessionID = generateSessionID(32); -> return sessionID
   //path.resolve(dataPath, `../cache` + dir)
   //console.log("process.cwd() : ", process.cwd())
+  const id = Date.now().toString(36)
   const cacheDir =  path.resolve(dataPath, `/cache` + dir)
   const filePath = path.resolve(dataPath, `/cache`+ dir + `${md5(videoId)}.` + format)
-  const outputPath = path.resolve(dataPath,  `/cache`+ dir + `${md5(videoId)}_out.` + format)
+  const outputPath = path.resolve(dataPath,  `/cache`+ dir + `${md5(id)}_out.` + format)
 
   createDir(cacheDir)
 
@@ -212,7 +214,11 @@ function merge(video, audio, req, res) {
       progress = Math.floor((hmsToSeconds(timemark)/ (end - start)) * 100)
       setMerge(req, progress)
     })
-    .on('error', error => console.log(error))
+    .on('error', (error) => {
+      console.log("video : ", video)
+      console.log("audio : ", audio)
+      console.log("merge (error) : ", error)
+    })
     .on('end',() => { 
       console.log(' finished (merge) !')  
       streamCutRes(res, outputPath) 
@@ -276,10 +282,10 @@ function convertToMp3(audio, writeStream, filePath, req, res, callBack) {
         })
         .on('error (convertToMp3) ', (err) => {
           //audio.destroy();
+          console.log("error (convertToMp3) : ", err)
           writeStream.destroy();
         })
-        .once('end', () => {
-          console.log(' finished (convertToMp3) !') 
+        .once('end', (res) => {
           if(callBack)
             callBack(filePath)
           else
@@ -304,7 +310,7 @@ function convertToMp4(filePath, outputPath, req, res, callBack) {
       setVideoProgress(req, progress)
     })
     .on('end', function(err) {
-      console.log(' finished (convertToMp4) !') 
+      console.log('finished (convertToMp4) !') 
       if(!err) { 
         console.log('conversion Done')
         
@@ -314,7 +320,7 @@ function convertToMp4(filePath, outputPath, req, res, callBack) {
           streamCutRes(res, outputPath, true) 
       }
     })
-    .on('error', err => console.log('error: ', err))
+    .on('error', err => console.log('error (convertToMp4) : ', err))
     .run()
   }
 }
