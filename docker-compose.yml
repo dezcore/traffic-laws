@@ -11,6 +11,9 @@ services:
       context: .
       dockerfile: ./Dockerfile
     volumes:
-      - .:/app
-      - '/app/node_modules'
-    command: sh -c "npm run dev" 
+      - trafficlaws-volume:/app
+    #  - '/app/node_modules'
+    command: sh -c "npm run dev"
+
+volumes:
+  trafficlaws-volume:
