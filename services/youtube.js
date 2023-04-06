@@ -292,6 +292,7 @@ function downloadAudio(sessionID, videoId, start, end, callBack) {
   let audio
 
   if(sessionID && videoId) {
+    console.log("videoId : ", videoId)
     audio = ytdl(videoId, { quality: 'highestaudio' })
         audio.on('error', (err) => {
           console.log("error (videoToMp3) : ", err)
